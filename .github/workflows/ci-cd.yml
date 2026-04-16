@@ -1,0 +1,52 @@
+name: IMPLEMENTACION DE CI/CD CON GITHUB ACTIONS - DOCKER
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test_and_build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias de Python
+        run: pip install -r requirements.txt
+
+      - name: Instalar dependencias de Node
+        run: npm install
+
+      - name: Instalar Ruff
+        run: pip install ruff
+
+      - name: Verificar código con Ruff
+        working-directory: src
+        run: ruff check .
+
+      - name: Ejecutar pruebas
+        run: python -m pytest src/tests.py
+
+      - name: Login en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar imagen Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/tuizak/practicafinal:latest
